@@ -21,7 +21,7 @@ class BitView {
         byteOffset = byteOffset ?? 0;
 
         // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-        byteLength = (byteLength ?? 0) || (source instanceof ArrayBuffer ? source.byteLength : source.length);
+        byteLength = (byteLength ?? 0) || (source instanceof ArrayBuffer ? source.byteLength - byteOffset : source.length - byteOffset);
 
         if (byteLength === 0) {
             byteLength = source instanceof ArrayBuffer ? source.byteLength : source.length;
