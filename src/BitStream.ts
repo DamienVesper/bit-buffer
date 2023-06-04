@@ -1,4 +1,4 @@
-import { BitView } from './bit-buffer/BitView';
+import { BitView } from './BitView';
 import {
     readASCIIString,
     readUTF8String,
