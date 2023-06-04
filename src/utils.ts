@@ -4,7 +4,7 @@ export const readString = (stream: BitStream, bytes: number, utf8: boolean): str
     if (bytes === 0) return ``;
 
     let i = 0;
-    const chars: number[] = [];
+    const chars: Array<number | boolean> = [];
 
     let append = true;
     const fixedLength = Boolean(bytes);
@@ -78,7 +78,9 @@ export const readASCIIString = (stream: BitStream, bytes: number): string => rea
 export const readUTF8String = (stream: BitStream, bytes: number): string => readString(stream, bytes, true);
 
 export const writeASCIIString = (stream: BitStream, string: string, bytes?: number): void => {
-    const length = bytes ?? string.length + 1; // +1 for null.
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    const length = (bytes ?? 0) || string.length + 1; // +1 for null.
+
     for (let i = 0; i < length; i++) {
         stream.writeUint8(i < string.length ? string.charCodeAt(i) : 0x00);
     }
@@ -86,7 +88,9 @@ export const writeASCIIString = (stream: BitStream, string: string, bytes?: numb
 
 export const writeUTF8String = (stream: BitStream, string: string, bytes?: number): void => {
     const byteArray = stringToByteArray(string);
-    const length = bytes ?? byteArray.length + 1; // +1 for null.
+
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    const length = (bytes ?? 0) || byteArray.length + 1; // +1 for null.
 
     for (let i = 0; i < length; i++) {
         stream.writeUint8(i < byteArray.length ? byteArray[i] : 0x00);

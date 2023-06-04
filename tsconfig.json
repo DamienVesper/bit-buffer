@@ -16,6 +16,6 @@
     "strictNullChecks": true,
     "allowJs": true
   },
-  "include": ["**/*.ts"],
+  "include": ["**/*.ts", "src/bruh.js"],
   "exclude": ["node_modules", "dist"]
 }

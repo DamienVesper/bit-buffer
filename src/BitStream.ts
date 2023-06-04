@@ -27,7 +27,9 @@ class BitStream {
         }
 
         byteOffset = byteOffset ?? 0;
-        byteLength = byteLength ?? ((source instanceof ArrayBuffer || source instanceof BitView) ? source.byteLength : source.length);
+
+        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+        byteLength = (byteLength ?? 0) || ((source instanceof ArrayBuffer || source instanceof BitView) ? source.byteLength : source.length);
 
         this._view = !(source instanceof BitView)
             ? new BitView(source, byteOffset, byteLength)
@@ -66,7 +68,7 @@ class BitStream {
         this._index = val * 8;
     }
 
-    get buffer (): Buffer {
+    get buffer (): ArrayBufferLike {
         return this._view.buffer;
     }
 
@@ -82,7 +84,7 @@ class BitStream {
         this._view.bigEndian = val;
     }
 
-    reader = (name: string, size: number) => (): number => {
+    reader = <T>(name: string, size: number) => (): T => {
         if (this._index + size > this._length) {
             throw new Error(`Trying to read past the end of the stream`);
         }
@@ -93,13 +95,13 @@ class BitStream {
         return val;
     };
 
-    writer = (name: string, size: number) => (value: number): void => {
+    writer = <T>(name: string, size: number) => (value: T): void => {
         this._view[name](this._index, value);
         this._index += size;
     };
 
-    readBits = (bits: number, signed: boolean): number => {
-        const val = this._view.getBits(this._index, bits, signed);
+    readBits = (bits: number, signed?: boolean): number => {
+        const val = this._view.getBits(this._index, bits, signed ?? false);
 
         this._index += bits;
         return val;
@@ -110,30 +112,31 @@ class BitStream {
         this._index += bits;
     };
 
-    readBoolean = this.reader(`getBoolean`, 1);
-    readInt8 = this.reader(`getInt8`, 8);
-    readInt16 = this.reader(`getInt16`, 16);
-    readInt32 = this.reader(`getInt32`, 32);
+    readBoolean = this.reader<boolean>(`getBoolean`, 1);
 
-    readUint8 = this.reader(`getUint8`, 8);
-    readUint16 = this.reader(`getUint16`, 16);
-    readUint32 = this.reader(`getUint32`, 32);
+    readInt8 = this.reader<number>(`getInt8`, 8);
+    readInt16 = this.reader<number>(`getInt16`, 16);
+    readInt32 = this.reader<number>(`getInt32`, 32);
 
-    readFloat32 = this.reader(`getFloat32`, 32);
-    readFloat64 = this.reader(`getFloat64`, 64);
+    readUint8 = this.reader<number>(`getUint8`, 8);
+    readUint16 = this.reader<number>(`getUint16`, 16);
+    readUint32 = this.reader<number>(`getUint32`, 32);
 
-    writeBoolean = this.writer(`setBoolean`, 1);
+    readFloat32 = this.reader<number>(`getFloat32`, 32);
+    readFloat64 = this.reader<number>(`getFloat64`, 64);
 
-    writeInt8 = this.writer(`setInt8`, 8);
-    writeInt16 = this.writer(`setInt16`, 16);
-    writeInt32 = this.writer(`setInt32`, 32);
+    writeBoolean = this.writer<boolean>(`setBoolean`, 1);
 
-    writeUint8 = this.writer(`setUint8`, 8);
-    writeUint16 = this.writer(`setUint16`, 16);
-    writeUint32 = this.writer(`setUint32`, 32);
+    writeInt8 = this.writer<number>(`setInt8`, 8);
+    writeInt16 = this.writer<number>(`setInt16`, 16);
+    writeInt32 = this.writer<number>(`setInt32`, 32);
 
-    writeFloat32 = this.writer(`setFloat32`, 32);
-    writeFloat64 = this.writer(`setFloat64`, 64);
+    writeUint8 = this.writer<number>(`setUint8`, 8);
+    writeUint16 = this.writer<number>(`setUint16`, 16);
+    writeUint32 = this.writer<number>(`setUint32`, 32);
+
+    writeFloat32 = this.writer<number>(`setFloat32`, 32);
+    writeFloat64 = this.writer<number>(`setFloat64`, 64);
 
     readASCIIString = (bytes: number): string => readASCIIString(this, bytes);
     readUTF8String = (bytes: number): string => readUTF8String(this, bytes);
@@ -162,7 +165,7 @@ class BitStream {
         let bitsToWrite: number;
         while (length > 0) {
             bitsToWrite = Math.min(length, 32);
-            this.writeBits(stream.readBits(bitsToWrite, false), bitsToWrite);
+            this.writeBits(stream.readBits(bitsToWrite), bitsToWrite);
             length -= bitsToWrite;
         }
     };

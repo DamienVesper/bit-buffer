@@ -19,14 +19,27 @@ class BitView {
         }
 
         byteOffset = byteOffset ?? 0;
-        byteLength = byteLength ?? (source instanceof ArrayBuffer ? source.byteLength : source.length);
 
-        this._view = new Uint8Array(source instanceof Buffer ? source.buffer : source, byteOffset, byteLength);
+        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+        byteLength = (byteLength ?? 0) || (source instanceof ArrayBuffer ? source.byteLength : source.length);
+
+        if (byteLength === 0) {
+            byteLength = source instanceof ArrayBuffer ? source.byteLength : source.length;
+        }
+
+        this._view = new Uint8Array(
+            typeof Buffer !== `undefined` && source instanceof Buffer
+                ? source.buffer
+                : source, byteOffset, byteLength
+        );
+
         this.bigEndian = false;
     }
 
-    get buffer (): Buffer {
-        return Buffer?.from(this._view.buffer) ?? this._view.buffer;
+    get buffer (): ArrayBufferLike {
+        return typeof Buffer !== `undefined`
+            ? Buffer.from(this._view.buffer)
+            : this._view.buffer;
     }
 
     get byteLength (): number {
