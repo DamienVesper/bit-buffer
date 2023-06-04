@@ -1,2 +1,2 @@
-export * from './bit-buffer/BitStream';
-export * from './bit-buffer/BitView';
+export * from './BitStream';
+export * from './BitView';
