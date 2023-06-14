@@ -15,8 +15,8 @@ class BitStream {
     private readonly _view: BitView;
 
     private _startIndex: number;
-    _length: number;
-    _index: number;
+    private _length: number;
+    private _index: number;
 
     constructor (source: ArrayBuffer | Buffer | BitView, byteOffset?: number, byteLength?: number) {
         const isBuffer = source instanceof ArrayBuffer ||
@@ -138,8 +138,8 @@ class BitStream {
     writeFloat32 = this.writer<number>(`setFloat32`, 32);
     writeFloat64 = this.writer<number>(`setFloat64`, 64);
 
-    readASCIIString = (bytes: number): string => readASCIIString(this, bytes);
-    readUTF8String = (bytes: number): string => readUTF8String(this, bytes);
+    readASCIIString = (bytes: number): string => readASCIIString(this, this._length, this._index, bytes);
+    readUTF8String = (bytes: number): string => readUTF8String(this, this._length, this._index, bytes);
 
     writeASCIIString = (string: string, bytes: number): void => {
         writeASCIIString(this, string, bytes);

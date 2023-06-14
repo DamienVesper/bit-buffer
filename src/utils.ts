@@ -1,6 +1,6 @@
 import type { BitStream } from './BitStream';
 
-export const readString = (stream: BitStream, bytes: number, utf8: boolean): string => {
+const readString = (stream: BitStream, length: number, index: number, bytes: number, utf8: boolean): string => {
     if (bytes === 0) return ``;
 
     let i = 0;
@@ -9,7 +9,7 @@ export const readString = (stream: BitStream, bytes: number, utf8: boolean): str
     let append = true;
     const fixedLength = Boolean(bytes);
 
-    if (bytes === 0) bytes = Math.floor((stream._length - stream._index));
+    if (bytes === 0) bytes = Math.floor(length - index);
 
     // Read while space is still available, or until parser has hit the fixed byte length.
     while (i < bytes) {
@@ -74,8 +74,8 @@ export const stringToByteArray = (str: string): number[] => {
     return b;
 };
 
-export const readASCIIString = (stream: BitStream, bytes: number): string => readString(stream, bytes, false);
-export const readUTF8String = (stream: BitStream, bytes: number): string => readString(stream, bytes, true);
+export const readASCIIString = (stream: BitStream, length: number, index: number, bytes: number): string => readString(stream, length, index, bytes, false);
+export const readUTF8String = (stream: BitStream, length: number, index: number, bytes: number): string => readString(stream, length, index, bytes, true);
 
 export const writeASCIIString = (stream: BitStream, string: string, bytes?: number): void => {
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
