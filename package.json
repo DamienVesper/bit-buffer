@@ -1,6 +1,6 @@
 {
   "name": "@damienvesper/bit-buffer",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "A fork of bit-buffer, in TypeScript.",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -8,6 +8,14 @@
     "build": "tsc",
     "lint": "eslint . --fix --ext .ts,.js",
     "lint:ci": "eslint . --ext .ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DamienVesper/bit-buffer.git"
+  },
+  "engines": {
+    "pnpm": ">=8.6.0",
+    "node": ">=18.8.0"
   },
   "keywords": [
     "dataview",
@@ -20,7 +28,10 @@
     "email": "ldamienvesper@gmail.com"
   },
   "license": "MIT",
-  "homepage": "https://github.com/DamienVesper/bit-buffer",
+  "bugs": {
+    "url": "https://github.com/DamienVesper/bit-buffer/issues"
+  },
+  "homepage": "https://github.com/DamienVesper/bit-buffer#readme",
   "devDependencies": {
     "@types/node": "^20.3.1",
     "@typescript-eslint/eslint-plugin": "^5.59.11",
@@ -38,5 +49,8 @@
     "package.json",
     "README.md",
     "LICENSE"
-  ]
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
 }
