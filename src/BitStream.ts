@@ -138,14 +138,14 @@ class BitStream {
     writeFloat32 = this.writer<number>(`setFloat32`, 32);
     writeFloat64 = this.writer<number>(`setFloat64`, 64);
 
-    readASCIIString = (bytes: number): string => readASCIIString(this, this._length, this._index, bytes);
-    readUTF8String = (bytes: number): string => readUTF8String(this, this._length, this._index, bytes);
+    readASCIIString = (bytes?: number): string => readASCIIString(this, this._length, this._index, bytes);
+    readUTF8String = (bytes?: number): string => readUTF8String(this, this._length, this._index, bytes);
 
-    writeASCIIString = (string: string, bytes: number): void => {
+    writeASCIIString = (string: string, bytes?: number): void => {
         writeASCIIString(this, string, bytes);
     };
 
-    writeUTF8String = (string: string, bytes: number): void => {
+    writeUTF8String = (string: string, bytes?: number): void => {
         writeUTF8String(this, string, bytes);
     };
 
