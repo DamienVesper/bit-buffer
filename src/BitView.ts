@@ -212,7 +212,7 @@ class BitView {
     setFloat64 = (offset: number, value: number): void => {
         this._scratch.setFloat64(0, value);
         this.setBits(offset, this._scratch.getUint32(0), 32);
-        this.setBits(offset, this._scratch.getUint32(4), 32);
+        this.setBits(offset + 32, this._scratch.getUint32(4), 32);
     };
 
     getArrayBuffer = (offset: number, byteLength: number): ArrayBuffer => {
