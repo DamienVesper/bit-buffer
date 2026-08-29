@@ -11,6 +11,7 @@
     "noImplicitThis": true,
     "verbatimModuleSyntax": true,
     "allowImportingTsExtensions": true,
+    "newLine": "lf",
     "types": ["bun"]
   },
   "include": ["./src/**/*.ts"],
