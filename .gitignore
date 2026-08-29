@@ -1,3 +1,5 @@
-# Node
+# Node modules
 node_modules/
-dist/
+
+# Builds
+build/

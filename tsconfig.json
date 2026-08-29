@@ -1,21 +1,5 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    "outDir": "./dist",
-
-    "declarationDir": "dist",
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
-    "strictNullChecks": true,
-    "allowJs": true
-  },
-  "include": ["**/*.ts", "src/bruh.js"],
-  "exclude": ["node_modules", "dist"]
+  "$schema": "https://www.schemastore.org/tsconfig.json",
+  "extends": "./tsconfig.base.json",
+  "include": ["./**/*.ts", "./**/*.js"]
 }

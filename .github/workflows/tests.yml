@@ -1,0 +1,29 @@
+name: Tests
+on:
+  push:
+    branches:
+      - master
+    paths: &paths
+      - "src/**"
+      - "*.json"
+      - "bun.lock"
+      - ".github/workflows/tests.yml"
+  pull_request:
+    paths: *paths
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    concurrency: ci-tests-${{ github.ref }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Packages
+        run: bun ci
+
+      - name: Run Tests
+        run: bun test

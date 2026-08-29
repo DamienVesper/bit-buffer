@@ -1,0 +1,18 @@
+{
+  "$schema": "https://www.schemastore.org/tsconfig.json",
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "module": "esnext",
+    "target": "esnext",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "types": ["bun"]
+  },
+  "include": ["./src/**/*.ts"],
+  "exclude": ["**/node_modules/**", "**/references/**", "**/build/**"]
+}

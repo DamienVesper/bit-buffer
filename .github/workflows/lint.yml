@@ -1,0 +1,33 @@
+name: Lint
+on:
+  push:
+    branches:
+      - master
+    paths: &paths
+      - "**.css"
+      - "**.js"
+      - "**.json"
+      - "**.ts"
+      - "**.yml"
+  pull_request:
+    paths: *paths
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    concurrency: ci-lint-${{ github.ref }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Packages
+        run: bun ci
+
+      - name: Lint
+        run: bun lint:ci
+
+      - name: Format
+        run: bun fmt:ci

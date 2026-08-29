@@ -1,0 +1,59 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "env": {
+    "browser": true,
+    "builtin": true,
+    "node": true
+  },
+  "ignorePatterns": ["**/build", "**/drizzle", "**/node_modules"],
+  "plugins": ["eslint", "import", "oxc", "typescript"],
+  "rules": {
+    // ESLint
+    "arrow-body-style": ["warn", "as-needed"],
+    "curly": ["warn", "multi-line"],
+    "no-duplicate-imports": "warn",
+    "no-useless-computed-key": "warn",
+    "prefer-template": "warn",
+    "yoda": "warn",
+
+    // Import
+    "import/extensions": [
+      "error",
+      "always",
+      {
+        "checkTypeImports": true,
+        "ignorePackages": true,
+        "pathGroupOverrides": [
+          {
+            "pattern": "**/*.d",
+            "action": "ignore"
+          },
+          {
+            "pattern": "**/*.svelte",
+            "action": "ignore"
+          }
+        ]
+      }
+    ],
+
+    // TypeScript
+    "typescript/adjacent-overload-signatures": "warn",
+    "typescript/explicit-function-return-type": [
+      "warn",
+      {
+        "allowExpressions": true,
+        "allowIIFEs": true,
+        "allowTypedFunctionExpressions": true
+      }
+    ],
+    "typescript/no-array-delete": "off",
+    "typescript/no-deprecated": "error",
+    "typescript/no-empty-interface": "warn",
+    "typescript/no-empty-object-type": "error",
+    "typescript/no-extraneous-class": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/no-unnecessary-boolean-literal-compare": "error",
+    "typescript/prefer-nullish-coalescing": "error",
+    "typescript/prefer-optional-chain": "error"
+  }
+}

@@ -1,0 +1,32 @@
+name: Build
+on:
+  push:
+    branches:
+      - master
+    paths: &paths
+      - "src/**"
+      - "*.json"
+      - "bun.lock"
+      - ".github/workflows/build.yml"
+  pull_request:
+    paths: *paths
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    concurrency: ci-build-${{ github.ref }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Packages
+        run: bun ci
+
+      - name: Typecheck
+        run: bun typecheck
+
+      - name: Build
+        run: bun build:ci

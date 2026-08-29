@@ -1,62 +1,85 @@
-/**
- * An interface provision to the standard DataView,
- * but with support for bit-level reads / writes.
+/*
+ * MIT License
+ *
+ * Copyright (c) 2020 bit-buffer developers (https://github.com/inolen/bit-buffer)
+ * Copyright (c) 2026 DamienVesper
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
-class BitView {
-    private readonly _view: Uint8Array;
 
-    // Used to massage fp values so they can be operated upon at the bit level.
-    private readonly _scratch = new DataView(new ArrayBuffer(8));
+import { min } from "./utils/math.ts";
 
-    bigEndian: boolean;
+/**
+ * Similar to `DataView`, excepts allows bit-level reads/writes rather than byte-level. Internally uses `DataView` for
+ * data storage.
+ */
+export class BitView<T extends ArrayBufferLike = ArrayBuffer> {
+    /**
+     * `DataView` used to massage floating-point values so that they can be operated upon at the bit level.
+     */
+    protected static _scratch = new DataView(new ArrayBuffer(8));
 
-    constructor (source: ArrayBuffer | Buffer | BitView, byteOffset?: number, byteLength?: number) {
-        const isBuffer = source instanceof ArrayBuffer ||
-            (typeof Buffer !== `undefined` && source instanceof Buffer);
+    /**
+     * The current byte pointed to by the DataView.
+     */
+    protected _view: Uint8Array<T>;
 
-        if (!isBuffer) {
-            throw new Error(`Must specify a valid ArrayBuffer or Buffer`);
-        }
-
-        byteOffset = byteOffset ?? 0;
-
-        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-        byteLength = (byteLength ?? 0) || (source instanceof ArrayBuffer ? source.byteLength - byteOffset : source.length - byteOffset);
-
-        if (byteLength === 0) {
-            byteLength = source instanceof ArrayBuffer ? source.byteLength : source.length;
-        }
-
-        this._view = new Uint8Array(
-            typeof Buffer !== `undefined` && source instanceof Buffer
-                ? source.buffer
-                : source, byteOffset, byteLength
-        );
-
-        this.bigEndian = false;
+    /**
+     * Create a new `BitView`.
+     * @param source The source buffer, must be of type `ArrayBufferLike`.
+     * @param byteOffset Optional byte offset.
+     * @param byteLength Length of the source buffer.
+     */
+    constructor(source: T, byteOffset = 0, byteLength = source.byteLength) {
+        this._view = new Uint8Array(source, byteOffset, byteLength);
     }
 
-    get buffer (): ArrayBufferLike {
-        return typeof Buffer !== `undefined`
-            ? Buffer.from(this._view.buffer)
-            : this._view.buffer;
+    /**
+     * @returns The underlying `Uint8Array`.
+     */
+    get view(): Uint8Array<T> {
+        return this._view;
     }
 
-    get byteLength (): number {
+    /**
+     * @returns The underlying `ArrayBufferLike`.
+     */
+    get buffer(): T {
+        return this._view.buffer;
+    }
+
+    /**
+     * @returns The number of bytes in the `Uint8Array`.
+     */
+    get byteLength(): number {
         return this._view.length;
     }
 
-    private readonly _setBit = (offset: number, on: boolean): void => {
-        on
-            ? this._view[offset >> 3] |= 1 << (offset & 7)
-            : this._view[offset >> 3] &= ~(1 << (offset & 7));
-    };
-
-    getBits = (offset: number, bits: number, signed: boolean): number => {
-        const available = (this._view.length * 8 - offset);
-        if (bits > available) {
-            throw new Error(`Cannot get ${bits} bit(s) from offset ${offset}, ${available} available`);
-        }
+    /**
+     * Get bits in the `BitView`.
+     * @param offset The number of don't care values at the beginning of the index.
+     * @param bits The number of bits to read.
+     * @param signed Whether to read back as a signed or unsigned integer.
+     */
+    getBits(offset: number, bits: number, signed = false): number {
+        const available = this._view.length * 8 - offset;
+        if (bits > available) throw new Error(`Cannot get ${bits} bit(s) [offset ${offset}], ${available} available.`);
 
         let value = 0;
         for (let i = 0; i < bits;) {
@@ -64,167 +87,145 @@ class BitView {
             const bitOffset = offset & 7;
             const currentByte = this._view[offset >> 3];
 
-            // The maximum number of bits that can be read from the current byte.
-            const read = Math.min(remaining, 8 - bitOffset);
+            // The maximum number of bits we can read from the current byte.
+            const max = min(remaining, 8 - bitOffset);
 
-            let mask: number;
-            let readBits: number;
+            // Create a mask with the correct bit width.
+            const mask = (1 << max) - 1;
 
-            if (this.bigEndian) {
-                // Create a mask with the correct bit width.
-                mask = ~(0xFF << read);
+            // Shift the bits we want to the start of the byte and mask off the rest.
+            const readBits = (currentByte >> bitOffset) & mask;
+            value |= readBits << i;
 
-                // Shift the bits wanted to the start of the byte and mask off the rest.
-                readBits = (currentByte >> (8 - read - bitOffset)) & mask;
-
-                value <<= read;
-                value |= readBits;
-            } else {
-                // Create a mask with the correct bit width.
-                mask = ~(0xFF << read);
-
-                // Shift the bits wanted to the start of the byte and mask off the rest.
-                readBits = (currentByte >> bitOffset) & mask;
-
-                value |= readBits << i;
-            }
-
-            offset += read;
-            i += read;
+            offset += max;
+            i += max;
         }
 
         if (signed) {
             /**
-             * If not working with a full 32 bits, check the
-             * imaginary MSB for this bit count and convert to a
-             * valid 32-bit signed value, if set.
+             * If not working with a full 32 bits, check the imaginary MSB for this bit count and convert to a valid
+             * 32-bit signed value if set. The signed value will be in two's complement form (invert all bits and add
+             * one).
              */
-            if (bits !== 32 && Boolean(value & (1 << bits - 1))) {
-                value |= -1 ^ ((1 << bits) - 1);
-            }
-
+            if (bits !== 32 && value & (1 << (bits - 1))) value |= -1 ^ ((1 << bits) - 1);
             return value;
         }
 
         return value >>> 0;
-    };
+    }
 
-    setBits = (offset: number, value: number, bits: number): void => {
-        const available = (this._view.length * 8 - offset);
-        if (bits > available) {
-            throw new Error(`Cannot set ${bits} bit(s) from offset ${offset}, ${available} available`);
-        }
+    setBits(offset: number, value: number, bits: number): void {
+        const available = this._view.length * 8 - offset;
+        if (bits > available) throw new Error(`Cannot set ${bits} bit(s) [offset ${offset}], ${available} available.`);
 
         for (let i = 0; i < bits;) {
-            const remaining = bits - i;
-            const bitOffset = offset & 7;
-            const byteOffset = offset >> 3;
-            const wrote = Math.min(remaining, 8 - bitOffset);
+            let wrote: number;
 
-            let mask: number;
-            let writeBits: number;
-            let destMask: number;
-
-            if (this.bigEndian) {
-                // Create a mask with the correct bit width.
-                mask = ~(~0 << wrote);
-
-                // Shift the bits wanted to the start of the byte and mask off the rest.
-                writeBits = (value >> (bits - i - wrote)) & mask;
-
-                const destShift = 8 - bitOffset - wrote;
-
-                // Destination mask to zero all the bits being changed first.
-                destMask = ~(mask << destShift);
-
-                this._view[byteOffset] =
-                    (this._view[byteOffset] & destMask) |
-                    (writeBits << destShift);
+            // Write an entire byte, if possible.
+            if (bits - i >= 8 && (offset & 7) === 0) {
+                this._view[offset >> 3] = value & 0xff;
+                wrote = 8;
             } else {
+                const remaining = bits - i;
+                const bitOffset = offset & 7;
+                const byteOffset = offset >> 3;
+
+                wrote = min(remaining, 8 - bitOffset);
+
                 // Create a mask with the correct bit width.
-                mask = ~(0xFF << wrote);
+                const mask = ~(0xff << wrote);
 
-                // Shift the bits wanted to the start of the byte and mask off the rest.
-                writeBits = value & mask;
-                value >>= wrote;
+                // Shift the bits we want to the start of the byte and mask off the rest.
+                const writeBits = value & mask;
 
-                // Destination mask to zero all the bits being changed first.
-                destMask = ~(mask << bitOffset);
-
-                this._view[byteOffset] =
-                    (this._view[byteOffset] & destMask) |
-                    (writeBits << bitOffset);
+                // Destination mask to zero all the bits we are changing.
+                const destMask = ~(mask << bitOffset);
+                this._view[byteOffset] = (this._view[byteOffset] & destMask) | (writeBits << bitOffset);
             }
 
+            value >>= wrote;
             offset += wrote;
             i += wrote;
         }
-    };
+    }
 
-    getBoolean = (offset: number): boolean => this.getBits(offset, 1, false) !== 0;
+    getBoolean(offset: number): boolean {
+        return this.getBits(offset, 1, false) !== 0;
+    }
 
-    getInt8 = (offset: number): number => this.getBits(offset, 8, true);
-    getInt16 = (offset: number): number => this.getBits(offset, 16, true);
-    getInt32 = (offset: number): number => this.getBits(offset, 32, true);
+    getInt8(offset: number): number {
+        return this.getBits(offset, 8, true);
+    }
 
-    getUint8 = (offset: number): number => this.getBits(offset, 8, false);
-    getUint16 = (offset: number): number => this.getBits(offset, 16, false);
-    getUint32 = (offset: number): number => this.getBits(offset, 32, false);
+    getInt16(offset: number): number {
+        return this.getBits(offset, 16, true);
+    }
 
-    getFloat32 = (offset: number): number => {
-        this._scratch.setUint32(0, this.getUint32(offset));
-        return this._scratch.getFloat32(0);
-    };
+    getInt32(offset: number): number {
+        return this.getBits(offset, 32, true);
+    }
 
-    getFloat64 = (offset: number): number => {
-        this._scratch.setUint32(0, this.getUint32(offset));
+    getUint8(offset: number): number {
+        return this.getBits(offset, 8, false);
+    }
 
-        // DataView offset is in bytes.
-        this._scratch.setUint32(4, this.getUint32(offset + 32));
-        return this._scratch.getFloat64(0);
-    };
+    getUint16(offset: number): number {
+        return this.getBits(offset, 16, false);
+    }
 
-    setBoolean = (offset: number, value: boolean): void => {
+    getUint32(offset: number): number {
+        return this.getBits(offset, 32, false);
+    }
+
+    getFloat32(offset: number): number {
+        BitView._scratch.setUint32(0, this.getUint32(offset));
+        return BitView._scratch.getFloat32(0);
+    }
+
+    getFloat64(offset: number): number {
+        BitView._scratch.setUint32(0, this.getUint32(offset));
+        BitView._scratch.setUint32(4, this.getUint32(offset + 32));
+
+        return BitView._scratch.getFloat64(0);
+    }
+
+    setBoolean(offset: number, value: boolean): void {
         this.setBits(offset, value ? 1 : 0, 1);
-    };
+    }
 
-    setInt8 = (offset: number, value: number): void => {
+    setInt8(offset: number, value: number): void {
         this.setBits(offset, value, 8);
-    };
+    }
 
-    setInt16 = (offset: number, value: number): void => {
+    setInt16(offset: number, value: number): void {
         this.setBits(offset, value, 16);
-    };
+    }
 
-    setInt32 = (offset: number, value: number): void => {
+    setInt32(offset: number, value: number): void {
         this.setBits(offset, value, 32);
-    };
+    }
 
-    setUint8 = this.setInt8;
-    setUint16 = this.setInt16;
-    setUint32 = this.setInt32;
+    setUint8(offset: number, value: number): void {
+        this.setBits(offset, value, 8);
+    }
 
-    setFloat32 = (offset: number, value: number): void => {
-        this._scratch.setFloat32(0, value);
-        this.setBits(offset, this._scratch.getUint32(0), 32);
-    };
+    setUint16(offset: number, value: number): void {
+        this.setBits(offset, value, 16);
+    }
 
-    setFloat64 = (offset: number, value: number): void => {
-        this._scratch.setFloat64(0, value);
-        this.setBits(offset, this._scratch.getUint32(0), 32);
-        this.setBits(offset + 32, this._scratch.getUint32(4), 32);
-    };
+    setUint32(offset: number, value: number): void {
+        this.setBits(offset, value, 32);
+    }
 
-    getArrayBuffer = (offset: number, byteLength: number): ArrayBuffer => {
-        const buffer = new Uint8Array(byteLength);
-        for (let i = 0; i < byteLength; i++) {
-            buffer[i] = this.getUint8(offset + (i * 8));
-        }
+    setFloat32(offset: number, value: number): void {
+        BitView._scratch.setFloat32(0, value);
+        this.setBits(offset, BitView._scratch.getUint32(0), 32);
+    }
 
-        return buffer;
-    };
+    setFloat64(offset: number, value: number): void {
+        BitView._scratch.setFloat64(0, value);
+
+        this.setBits(offset, BitView._scratch.getUint32(0), 32);
+        this.setBits(offset + 32, BitView._scratch.getUint32(4), 32);
+    }
 }
-
-export {
-    BitView
-};
